@@ -6,13 +6,34 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // Any request to /webhook will be forwarded to your n8n Render instance
-      // The browser thinks it's communicating with localhost, so CORS won't block it!
       '/webhook': {
         target: 'https://n8n-test-q9yh.onrender.com',
         changeOrigin: true,
-        secure: false, // In case n8n has SSL issues
+        secure: false,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Sending Request to the Target:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+          });
+        },
+      },
+      '/webhook-test': {
+        target: 'https://n8n-test-q9yh.onrender.com',
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Sending Test Request to the Target:', req.method, req.url);
+          });
+        },
       }
+
     }
   }
+
 })

@@ -1,7 +1,7 @@
 import React from 'react';
 import './Header.css';
 
-export default function Header() {
+export default function Header({ isTest, setIsTest }) {
   return (
     <header className="header">
       <div className="header-content">
@@ -13,10 +13,24 @@ export default function Header() {
             <h1>MathAI</h1>
           </div>
         </div>
+        
         <div className="header-actions">
-           <span className="model-badge">GPT-Inspired Solver</span>
+          <div className="toggle-container">
+            <span className={`toggle-label ${!isTest ? 'active' : ''}`}>Prod</span>
+            <label className="switch">
+              <input 
+                type="checkbox" 
+                checked={isTest} 
+                onChange={() => setIsTest(!isTest)} 
+              />
+              <span className="slider round"></span>
+            </label>
+            <span className={`toggle-label ${isTest ? 'active' : ''}`}>Test</span>
+          </div>
+          <span className="model-badge">AI Solver v4</span>
         </div>
       </div>
     </header>
   );
 }
+

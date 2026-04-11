@@ -10,6 +10,7 @@ export default function App() {
   const [solution, setSolution] = useState(null);
   const [error, setError]     = useState(null);
   const [lastQuestion, setLastQuestion] = useState('');
+  const [isTest, setIsTest] = useState(false);
 
   const handleSolve = async ({ type, question, imageFile }) => {
     setLoading(true);
@@ -22,75 +23,91 @@ export default function App() {
     try {
       let result;
       if (type === 'text') {
-        result = await solveMathQuestion(question);
+        result = await solveMathQuestion(question, isTest);
       } else {
-        result = await solveMathImage(imageFile);
+        result = await solveMathImage(imageFile, isTest);
       }
 
-      // 1. Check if result is just a string (n8n raw response)
-      if (typeof result === 'string') {
-        result = { solution: result, success: true };
+      console.log("n8n Webhook Response:", result);
+
+      // 1. Unwrap common n8n/API wrappings (Array or .data object)
+      let data = result;
+      if (Array.isArray(result) && result.length > 0) data = result[0];
+      else if (result && result.data && typeof result.data === 'object' && !result.steps) data = result.data;
+
+      // 2. Convert raw string to object if possible
+      if (typeof data === 'string') {
+        data = { solution: data, success: true };
       }
 
-      // 2. Handle the new comprehensive JSON schema from the AI
+      // 3. Extract steps with multiple fallback names
+      let rawSteps = data.steps || data.solutionSteps || data.work || data.process || [];
       let steps = [];
-      if (Array.isArray(result.steps)) {
-        steps = result.steps.map(s => {
-          if (typeof s === 'object') {
-            // Greedy Search: Try every common name for 'math work' or 'content'
-            const math = s.work || s.content || s.step || s.math || s.text || s.description || s.value || '';
-            const title = s.title || s.name || s.heading || '';
-            
-            if (title && math && title !== math) {
-              return `${title}: ${math}`;
-            }
-            return math || title || '';
+      
+      if (Array.isArray(rawSteps)) {
+        steps = rawSteps.map(s => {
+          if (typeof s === 'object' && s !== null) {
+            return s.work || s.content || s.step || s.math || s.text || s.description || s.value || s.title || '';
           }
           return s;
         });
       }
 
-      // 3. Extract primary content sources
-      const solutionContent = result.solution && typeof result.solution === 'string' ? result.solution : null;
-      const finalAnswer = result.answer || result.finalAnswer || result.answerValue || '';
-      const explanation = result.explanation || result.reasoning || '';
+      // 4. Extract primary content with multiple fallback names
+      const solutionContent = data.solution && typeof data.solution === 'string' ? data.solution : null;
+      const finalAnswer = data.answer || data.finalAnswer || data.answerValue || data.result || '';
+      const explanation = data.explanation || data.reasoning || data.description || '';
+      const topic = data.topic || data.subject || '';
       
-      // 4. A response is successful if it has EITHER a final answer OR a detailed solution string/steps
-      const hasContent = (typeof finalAnswer === 'string' && finalAnswer.trim().length > 0 && finalAnswer !== 'See solution steps below') || 
-                         (steps.length > 0) || 
+      // 5. Detect if there's ANY usable content
+      const hasContent = (steps.length > 0) || 
+                         (typeof finalAnswer === 'string' && finalAnswer.trim().length > 0 && finalAnswer !== 'See solution steps below') || 
                          (solutionContent !== null && solutionContent.trim().length > 0);
 
-      // 5. Detect if the response is an explicit error message
+      // 6. Detect explicit errors
       const isErrorMessage = typeof finalAnswer === 'string' && 
         (finalAnswer.toLowerCase().includes('failed to parse') || 
          finalAnswer.toLowerCase().includes('could not solve') ||
          finalAnswer.toLowerCase().includes('internal error'));
 
-      // 6. We treat it as a success if there is CONTENT, even if 'success' field is missing or false
-      // This handles cases where the AI solves it but the workflow's JSON enrichment step fails.
-      const success = (result.success !== false || hasContent) && !isErrorMessage && hasContent;
+      // 7. Force success if content is present, unless it's an explicit error string
+      const success = hasContent && !isErrorMessage;
       
       const solvedAt = new Date().toISOString();
 
       setSolution({ 
-        ...result, 
+        ...data, 
+        topic,
         explanation,
         steps: steps.length > 0 ? steps : (solutionContent ? [solutionContent] : []),
         finalAnswer: (finalAnswer && finalAnswer !== 'See solution steps below') ? finalAnswer : (hasContent ? 'See solution steps below' : ''), 
         success, 
-        error: result.error || (isErrorMessage ? finalAnswer : null),
+        error: data.error || (isErrorMessage ? finalAnswer : null),
         solvedAt 
       });
+
     } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        err?.message ||
-        'Unknown error occurred.';
+      console.error("Full Error Object:", err);
+      const statusCode = err?.response?.status;
+      const errorData = err?.response?.data;
+      
+      let msg = "Webhook Connection Failed. ";
+      
+      if (err.message === "Network Error") {
+        msg += "This is likely a CORS issue or n8n is offline. Ensure n8n allows requests from localhost.";
+      } else if (statusCode === 404) {
+        msg += "The webhook URL was not found (404). Check if the workflow is Active.";
+      } else {
+        msg += err.message || "Unknown error occurred.";
+      }
+      
+      if (statusCode) msg += ` (System Status: ${statusCode})`;
+      
       setError(msg);
     } finally {
       setLoading(false);
     }
+
   };
 
   const handleReset = () => {
@@ -107,7 +124,7 @@ export default function App() {
         <div className="orb orb-2"></div>
       </div>
       
-      <Header />
+      <Header isTest={isTest} setIsTest={setIsTest} />
 
       <main className="main-content">
         <div className="container">
