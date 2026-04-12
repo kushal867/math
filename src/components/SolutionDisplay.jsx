@@ -1,40 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import './SolutionDisplay.css';
 
-// Cleaned up steps display to match a more natural 'ChatGPT' style
-
-
 export default function SolutionDisplay({ solution, question, error, loading }) {
-  const [visibleSteps, setVisibleSteps] = useState([]);
   const [copied, setCopied] = useState(false);
-  const [copyType, setCopyType] = useState(null);
 
-  // Staggered reveal of steps for a 'streaming' effect
-  useEffect(() => {
-    if (!solution?.steps) {
-      setVisibleSteps([]);
-      return;
+  const handleCopy = () => {
+    let textToCopy = "";
+    if (solution.solution) {
+      textToCopy = solution.solution;
+    } else if (solution.steps) {
+      textToCopy = `${solution.topic}\n\n${solution.explanation}\n\n`;
+      solution.steps.forEach((s, idx) => {
+        textToCopy += `Step ${idx + 1}: ${s.step}\n${s.math}\n\n`;
+      });
+      textToCopy += `Final Answer: ${solution.finalAnswer}`;
     }
-    setVisibleSteps([]);
-    solution.steps.forEach((_, i) => {
-      setTimeout(() => {
-        setVisibleSteps((prev) => [...prev, i]);
-      }, i * 150);
-    });
-  }, [solution]);
 
-  const copyToClipboard = async (text, type = 'all') => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopyType(type);
-      if (type === 'all') setCopied(true);
-      setTimeout(() => {
-        setCopyType(null);
-        if (type === 'all') setCopied(false);
-      }, 2000);
-    } catch (err) {
-      console.error('Failed to copy!', err);
-    }
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (loading) {
@@ -45,14 +32,13 @@ export default function SolutionDisplay({ solution, question, error, loading }) 
             <div className="loading-brain">🧠</div>
             <div className="pulse-circle"></div>
           </div>
-          <h3 className="loading-title">MathAI is thinking...</h3>
-          <p className="loading-subtitle">Processing your problem with advanced logic</p>
+          <h3 className="loading-title">MathAI is analyzing...</h3>
+          <p className="loading-subtitle">Solving all problems and formatting your report</p>
           
           <div className="loading-steps-skeleton">
             {[1, 2, 3].map(i => (
               <div key={i} className="skeleton-step">
                 <div className="skeleton-line" style={{ width: `${80 - i * 5}%`, animationDelay: `${i * 0.2}s` }} />
-                <div className="skeleton-line" style={{ width: `${50 - i * 3}%`, animationDelay: `${i * 0.2 + 0.1}s` }} />
               </div>
             ))}
           </div>
@@ -61,30 +47,19 @@ export default function SolutionDisplay({ solution, question, error, loading }) 
     );
   }
 
-  if (error || (solution && solution.success === false)) {
-    const errorMsg = error || solution?.error || solution?.message || "The AI encountered an issue parsing the math problem.";
+  if (error) {
     return (
       <div className="solution-display animate-fade-in">
         <div className="error-state">
           <div className="error-icon">⚠️</div>
-          <h3 className="error-title">Couldn't solve this one</h3>
-          <p className="error-msg">{errorMsg}</p>
-          
-          {/* If there's partial data despite the error, show it simplified */}
-          {(solution?.question || solution?.topic) && (
-            <div className="error-context">
-              <p>Requested: <strong>{solution.question || "N/A"}</strong></p>
-              <p>Topic detected: <strong>{solution.topic || "Unknown"}</strong></p>
-            </div>
-          )}
-
+          <h3 className="error-title">Couldn't solve the question</h3>
+          <p className="error-msg">{error}</p>
           <div className="error-tips">
             <p className="tips-header">🔍 Troubleshooting Tips:</p>
             <ul>
               <li>Check your <strong>n8n workflow</strong> connections.</li>
-              <li>Ensure the <strong>AI model</strong> in n8n is returning structured JSON.</li>
-              <li>If you see "Failed to parse", the AI's math formatting might be too complex for the current workflow.</li>
-              <li>Try simplifying the question or re-uploading a clearer image.</li>
+              <li>Ensure <strong>AI Model</strong> is responding in n8n.</li>
+              <li>Try rephrasing your question or uploading a clearer image.</li>
             </ul>
           </div>
         </div>
@@ -94,100 +69,147 @@ export default function SolutionDisplay({ solution, question, error, loading }) 
 
   if (!solution) return null;
 
-  const fullSolutionText = `Problem: ${question || solution.question}\n\nSteps:\n${solution.steps?.join('\n') || ''}\n\nFinal Answer: ${solution.finalAnswer}`;
+  // Render PDF Success State
+  if (solution.isPDF) {
+    return (
+      <div className="solution-display animate-fade-in">
+        <div className="pdf-success-state">
+          <div className="pdf-icon">📄</div>
+          <h2 className="pdf-title">Solution PDF Ready!</h2>
+          <p className="pdf-msg"> Your step-by-step solutions have been generated and downloaded automatically.</p>
+          
+          {solution.fileName && (
+            <div className="file-info">
+              <span className="file-label">Filename:</span>
+              <span className="file-name">{solution.fileName}</span>
+            </div>
+          )}
 
+          <div className="pdf-actions">
+            <a href={solution.pdfUrl} download={solution.fileName} className="download-btn">
+              📥 Download PDF Again
+            </a>
+          </div>
+
+          <div className="pdf-footer">
+            <p>This report includes steps, final answers, and hints for all detected questions.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render Structured / Markdown Solution
   return (
     <div className="solution-display animate-fade-in">
-      {/* Question Recap Header */}
       <div className="solution-header">
         <div className="solution-header-top">
           <div className="solution-badges">
-            <span className="solution-badge">✨ Solution</span>
-            {solution.topic && <span className="solution-badge badge-topic">🏷️ {solution.topic}</span>}
+            <span className="solution-badge badge-topic">{solution.topic || "Solution Found"}</span>
+            {solution.difficulty && (
+              <span className={`solution-badge badge-difficulty ${solution.difficulty.toLowerCase()}`}>
+                {solution.difficulty}
+              </span>
+            )}
+            <span className="solution-badge">AI Response</span>
           </div>
-          <button 
-            className={`copy-all-btn ${copied ? 'copied' : ''}`}
-            onClick={() => copyToClipboard(fullSolutionText, 'all')}
-          >
-            {copied ? '✅ Solution Copied' : '📋 Copy All'}
+          <button className={`copy-all-btn ${copied ? 'copied' : ''}`} onClick={handleCopy}>
+            {copied ? '✓ Copied' : '📄 Copy All'}
           </button>
         </div>
-        
-        {(question || solution.question) && (
-          <div className="question-recap">
-            <span className="recap-label">Q:</span>
-            <span className="recap-text">{question || solution.question}</span>
-          </div>
-        )}
+
+        <div className="question-recap">
+          <span className="recap-label">Q:</span>
+          <span>{solution.question || question}</span>
+        </div>
       </div>
 
       <div className="solution-content">
-        {/* Explanation / Introduction */}
+        {/* If it's structured fields */}
         {solution.explanation && (
-          <div className="explanation-paragraph animate-slide-up">
-            {solution.explanation}
+          <div className="explanation-section animate-fade-in">
+             <div className="section-label">Analysis</div>
+             <p className="explanation-paragraph">{solution.explanation}</p>
           </div>
         )}
 
-        {/* Unified Steps Container */}
-        <div className="steps-container">
-          {solution.steps && solution.steps.map((step, i) => (
-            visibleSteps.includes(i) && (
-              <div key={i} className="solution-step-item animate-slide-up">
-                {step.split('\n').map((line, idx) => {
-                  const isMath = /[=+\-*/√θ^∫λΣΔπµ∞≈≠≤≥]/.test(line) || /\\/.test(line) || /(\d+[a-zA-Z])/.test(line);
-                  return (
-                    <p 
-                      key={idx} 
-                      className={`${line.trim() === "" ? "step-spacer" : "step-line"} ${isMath ? "math-line" : ""}`}
-                    >
-                      {line}
-                    </p>
-                  );
-                })}
+        {solution.steps && (
+          <div className="steps-timeline">
+            {solution.steps.map((step, idx) => (
+              <div key={idx} className="timeline-item animate-slide-in" style={{ animationDelay: `${idx * 0.1}s` }}>
+                <div className="timeline-dot">
+                  <span className="dot-number">{step.step || idx + 1}</span>
+                </div>
+                <div className="timeline-content">
+                  <h4 className="step-title">{step.title || step.step_text || `Step ${idx + 1}`}</h4>
+                  {(step.working || step.math) && (
+                    <div className="step-working">
+                      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                        {step.working || step.math}
+                      </ReactMarkdown>
+                    </div>
+                  )}
+                </div>
               </div>
-            )
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {/* Final Answer - Styled as part of the flow */}
         {solution.finalAnswer && (
-          <div className="final-answer-section animate-slide-up" style={{ animationDelay: `${(solution.steps?.length || 0) * 150}ms` }}>
-            <div className="final-answer-row">
-              <div className="final-answer-label">Final Answer:</div>
-              <button 
-                className="copy-mini-btn"
-                onClick={() => copyToClipboard(solution.finalAnswer, 'final')}
-                title="Copy result"
-              >
-                {copyType === 'final' ? '✅' : '📋'}
-              </button>
+          <div className="final-answer-card animate-fade-in-up">
+            <div className="answer-card-glow"></div>
+            <div className="answer-header">
+               <span className="answer-icon">🎯</span>
+               <span className="answer-label">Result</span>
             </div>
-            <div className="final-answer-text">{solution.finalAnswer}</div>
+            <div className="answer-value">
+               <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                 {solution.finalAnswer}
+               </ReactMarkdown>
+            </div>
+          </div>
+        )}
+
+        {/* Verification - only show if exists */}
+        {solution.verification && (
+          <div className="verification-block animate-fade-in">
+            <div className="block-header">
+               <span className="block-icon">🛡️</span>
+               <span className="block-label">Solution Verified</span>
+            </div>
+            <div className="block-content">
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                {solution.verification}
+              </ReactMarkdown>
+            </div>
+          </div>
+        )}
+
+        {/* If it's fallback markdown */}
+        {solution.solution && !solution.steps && (
+          <div className="markdown-body">
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+              {solution.solution}
+            </ReactMarkdown>
           </div>
         )}
       </div>
 
-      {/* Hints */}
       {solution.hints && solution.hints.length > 0 && (
         <div className="hints-section">
-          <h4 className="hints-title">💡 Pro Hints</h4>
+          <h4 className="hints-title">💡 Hints & Tips</h4>
           <ul className="hints-list">
-            {solution.hints.map((hint, i) => (
-              <li key={i}>{hint}</li>
+            {solution.hints.map((hint, idx) => (
+              <li key={idx}>{hint}</li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Footer */}
       <div className="solution-footer">
-        <p>
-          {solution.solvedAt && (
-            <span className="solved-at">Solved at: {new Date(solution.solvedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-          )}
-        </p>
+        <div className="solved-at">Solved via MathAI • {new Date(solution.solvedAt).toLocaleTimeString()}</div>
       </div>
     </div>
   );
 }
+

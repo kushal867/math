@@ -21,94 +21,69 @@ export default function App() {
     else setLastQuestion('(image uploaded)');
 
     try {
-      let result;
+      let blob;
       if (type === 'text') {
-        result = await solveMathQuestion(question, isTest);
+        blob = await solveMathQuestion(question, isTest);
       } else {
-        result = await solveMathImage(imageFile, isTest);
+        blob = await solveMathImage(imageFile, isTest);
       }
 
-      console.log("n8n Webhook Response:", result);
+      // 1. Check if it's a PDF
+      if (blob.type === 'application/pdf') {
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement('a');
+        link.href = url;
+        const fileName = `MathAI_Solution_${new Date().getTime()}.pdf`;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
 
-      // 1. Unwrap common n8n/API wrappings (Array or .data object)
-      let data = result;
-      if (Array.isArray(result) && result.length > 0) data = result[0];
-      else if (result && result.data && typeof result.data === 'object' && !result.steps) data = result.data;
+        setSolution({
+          success: true,
+          isPDF: true,
+          fileName,
+          pdfUrl: url,
+          solvedAt: new Date().toISOString()
+        });
+      } 
+      // 2. If not PDF, try to parse as JSON (might be solution or error)
+      else {
+        const text = await blob.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error("Received invalid data format from n8n.");
+        }
 
-      // 2. Convert raw string to object if possible
-      if (typeof data === 'string') {
-        data = { solution: data, success: true };
-      }
+        // Check if the JSON is an error
+        if (data.error || (data.message && !data.steps && !data.solutions)) {
+           throw new Error(data.error || data.message || "n8n returned an error.");
+        }
 
-      // 3. Extract steps with multiple fallback names
-      let rawSteps = data.steps || data.solutionSteps || data.work || data.process || [];
-      let steps = [];
-      
-      if (Array.isArray(rawSteps)) {
-        steps = rawSteps.map(s => {
-          if (typeof s === 'object' && s !== null) {
-            return s.work || s.content || s.step || s.math || s.text || s.description || s.value || s.title || '';
-          }
-          return s;
+        // If it's a list of solutions, take the first one
+        const solutionData = data.solutions && data.solutions.length > 0 
+          ? data.solutions[0] 
+          : data;
+
+        // Otherwise, it's a text-based solution
+        setSolution({
+          ...solutionData,
+          isPDF: false,
+          solvedAt: new Date().toISOString()
         });
       }
 
-      // 4. Extract primary content with multiple fallback names
-      const solutionContent = data.solution && typeof data.solution === 'string' ? data.solution : null;
-      const finalAnswer = data.answer || data.finalAnswer || data.answerValue || data.result || '';
-      const explanation = data.explanation || data.reasoning || data.description || '';
-      const topic = data.topic || data.subject || '';
-      
-      // 5. Detect if there's ANY usable content
-      const hasContent = (steps.length > 0) || 
-                         (typeof finalAnswer === 'string' && finalAnswer.trim().length > 0 && finalAnswer !== 'See solution steps below') || 
-                         (solutionContent !== null && solutionContent.trim().length > 0);
-
-      // 6. Detect explicit errors
-      const isErrorMessage = typeof finalAnswer === 'string' && 
-        (finalAnswer.toLowerCase().includes('failed to parse') || 
-         finalAnswer.toLowerCase().includes('could not solve') ||
-         finalAnswer.toLowerCase().includes('internal error'));
-
-      // 7. Force success if content is present, unless it's an explicit error string
-      const success = hasContent && !isErrorMessage;
-      
-      const solvedAt = new Date().toISOString();
-
-      setSolution({ 
-        ...data, 
-        topic,
-        explanation,
-        steps: steps.length > 0 ? steps : (solutionContent ? [solutionContent] : []),
-        finalAnswer: (finalAnswer && finalAnswer !== 'See solution steps below') ? finalAnswer : (hasContent ? 'See solution steps below' : ''), 
-        success, 
-        error: data.error || (isErrorMessage ? finalAnswer : null),
-        solvedAt 
-      });
-
     } catch (err) {
       console.error("Full Error Object:", err);
-      const statusCode = err?.response?.status;
-      const errorData = err?.response?.data;
-      
-      let msg = "Webhook Connection Failed. ";
-      
-      if (err.message === "Network Error") {
-        msg += "This is likely a CORS issue or n8n is offline. Ensure n8n allows requests from localhost.";
-      } else if (statusCode === 404) {
-        msg += "The webhook URL was not found (404). Check if the workflow is Active.";
-      } else {
-        msg += err.message || "Unknown error occurred.";
-      }
-      
-      if (statusCode) msg += ` (System Status: ${statusCode})`;
-      
+      const msg = err.message || "Failed to connect to the n8n solver.";
       setError(msg);
     } finally {
       setLoading(false);
     }
-
   };
+
 
   const handleReset = () => {
     setSolution(null);

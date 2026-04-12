@@ -27,7 +27,7 @@ export default function Header({ isTest, setIsTest }) {
             </label>
             <span className={`toggle-label ${isTest ? 'active' : ''}`}>Test</span>
           </div>
-          <span className="model-badge">AI Solver v4</span>
+          <span className="model-badge">AI Solver</span>
         </div>
       </div>
     </header>
