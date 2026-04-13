@@ -20,7 +20,7 @@ export default function InputPanel({ onSolve, loading }) {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
+    if (file && (file.type.startsWith('image/') || file.type === 'application/pdf')) {
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
     }
@@ -144,18 +144,25 @@ export default function InputPanel({ onSolve, loading }) {
               <div className="drop-icon">📄</div>
               <p className="drop-title">Drop your question paper here</p>
               <p className="drop-sub">or click to browse</p>
-              <p className="drop-hint">Supports JPG, PNG, PDF screenshots</p>
+              <p className="drop-hint">Supports JPG, PNG, PDF</p>
               <input
                 id="file-input"
                 type="file"
-                accept="image/*"
+                accept="image/*,.pdf"
                 style={{ display: 'none' }}
                 onChange={handleImageInput}
               />
             </div>
           ) : (
             <div className="image-preview-box">
-              <img src={imagePreview} alt="Uploaded question paper" className="preview-img" />
+              {imageFile && imageFile.type === 'application/pdf' ? (
+                <div style={{ height: '150px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', borderRadius: '8px', color: '#ef4444' }}>
+                  <span style={{ fontSize: '48px' }}>📄</span>
+                  <span style={{ fontWeight: '600', marginTop: '8px' }}>PDF Document</span>
+                </div>
+              ) : (
+                <img src={imagePreview} alt="Uploaded question paper" className="preview-img" />
+              )}
               <div className="preview-info">
                 <span className="preview-name">📎 {imageFile.name}</span>
                 <button className="clear-btn" onClick={clearImage}>✕ Remove</button>
