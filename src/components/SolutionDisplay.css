@@ -322,92 +322,50 @@
 
 .answer-card-glow {
   position: absolute;
-  top: -50%;
-  right: -20%;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(94, 234, 212, 0.2) 0%, transparent 70%);
-  z-index: 0;
-  pointer-events: none;
+  top: -50%; left: -50%; width: 200%; height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+  animation: float 10s infinite;
 }
 
 .answer-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   position: relative;
-  z-index: 1;
 }
 
-.answer-icon {
-  font-size: 1.5rem;
-}
-
+.answer-icon { font-size: 1.5rem; }
 .answer-label {
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 800;
   text-transform: uppercase;
-  color: var(--text-secondary);
   letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .answer-value {
-  font-size: 2.2rem;
-  font-weight: 700;
+  font-size: 1.75rem;
+  font-weight: 800;
   color: #fff;
   position: relative;
-  z-index: 1;
   line-height: 1.3;
 }
 
-/* Verification Block */
-.verification-block {
-  padding: 24px 32px;
-  background: rgba(16, 185, 129, 0.05);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(16, 185, 129, 0.15);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.block-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.block-icon { font-size: 1.1rem; }
-.block-label {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #10b981;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.block-content {
-  color: var(--text-primary);
-  font-size: 1.05rem;
-  line-height: 1.6;
-}
-
-/* Hints */
+/* Hints Section */
 .hints-section {
-  padding: 32px 48px;
-  background: rgba(255, 255, 255, 0.02);
-  border-top: 1px solid var(--border);
+  background: rgba(34, 211, 238, 0.05);
+  border: 1px solid rgba(34, 211, 238, 0.1);
+  border-radius: var(--radius-lg);
+  padding: 24px 32px;
 }
 
 .hints-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin-bottom: 20px;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--accent-tertiary);
+  margin-bottom: 16px;
+  text-transform: uppercase;
 }
 
 .hints-list {
@@ -420,8 +378,8 @@
 .hints-list li {
   font-size: 0.95rem;
   color: var(--text-secondary);
-  padding-left: 20px;
-  position: relative;
+  display: flex;
+  gap: 12px;
 }
 
 .hints-list li::before {

@@ -89,14 +89,14 @@ export default function InputPanel({ onSolve, loading }) {
               className="math-textarea"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Type your maths question here...&#10;Example: Solve x² - 5x + 6 = 0"
+              placeholder="e.g. Find the roots of x² - 5x + 6 = 0&#10;or: What is the derivative of sin(x) * e^x?"
               rows={5}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && e.ctrlKey) handleSubmit();
               }}
             />
             <div className="textarea-controls">
-              <span className="textarea-hint">Press Ctrl+Enter to solve</span>
+              <span className="textarea-hint">⌘ + Enter to solve instantly</span>
               {question && (
                 <button 
                   className="clear-btn" 
