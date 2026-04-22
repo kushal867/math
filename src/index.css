@@ -12,31 +12,31 @@
   --bg-secondary: #080812;
   --bg-card: rgba(13, 13, 25, 0.5);
   --bg-card-hover: rgba(20, 20, 35, 0.7);
-  --bg-input: rgba(5, 5, 12, 0.8);
+  --bg-input: rgba(10, 10, 20, 0.8);
   
-  --border: rgba(255, 255, 255, 0.06);
-  --border-focus: rgba(139, 92, 246, 0.5); 
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(139, 92, 246, 0.6); 
   
   --accent-primary: #6366f1; /* Indigo */
   --accent-secondary: #a855f7; /* Purple */
   --accent-tertiary: #22d3ee; /* Cyan */
-  --accent-glow: rgba(99, 102, 241, 0.25);
+  --accent-glow: rgba(99, 102, 241, 0.3);
   
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
-  --text-muted: #475569;
+  --text-muted: #64748b;
   
-  --glass-bg: rgba(8, 8, 18, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  --glass-bg: rgba(10, 10, 20, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.1) inset;
   
   --gradient-main: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
-  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 100%);
+  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
   
-  --radius-sm: 10px;
-  --radius-md: 18px;
-  --radius-lg: 28px;
-  --radius-xl: 40px;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 32px;
+  --radius-xl: 48px;
   
   --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -44,6 +44,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 100px;
 }
 
 body {
@@ -57,12 +58,18 @@ body {
   line-height: 1.6;
 }
 
+::selection {
+  background: var(--accent-primary);
+  color: white;
+}
+
 /* Custom Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
 ::-webkit-scrollbar-thumb { 
   background: rgba(255, 255, 255, 0.1); 
-  border-radius: 10px;
+  border-radius: 100px;
+  border: 2px solid var(--bg-primary);
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
 
@@ -99,8 +106,13 @@ body {
 }
 
 @keyframes orbit {
-  0%   { transform: rotate(0deg) translateX(100px) rotate(0deg); }
-  100% { transform: rotate(360deg) translateX(100px) rotate(-360deg); }
+  0%   { transform: rotate(0deg) translateX(120px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(120px) rotate(-360deg); }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
 }
 
 /* Utility Animations */
