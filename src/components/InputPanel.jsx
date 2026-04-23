@@ -96,6 +96,21 @@ export default function InputPanel({ onSolve, loading }) {
               }}
             />
             <div className="textarea-controls">
+              <div className="extra-actions">
+                <button 
+                  className="action-btn" 
+                  title="Voice Input (Coming Soon)"
+                  onClick={() => alert("Voice input will be available in the next update!")}
+                >
+                  🎙️
+                </button>
+                <button 
+                  className="action-btn" 
+                  title="Math Symbols"
+                >
+                  π
+                </button>
+              </div>
               <span className="textarea-hint">⌘ + Enter to solve instantly</span>
               {question && (
                 <button 

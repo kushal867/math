@@ -1,7 +1,7 @@
 import React from 'react';
 import './Header.css';
 
-export default function Header({ isTest, setIsTest }) {
+export default function Header({ isTest, setIsTest, toggleHistory, historyCount }) {
   return (
     <header className="header">
       <div className="header-content">
@@ -11,10 +11,19 @@ export default function Header({ isTest, setIsTest }) {
           </div>
           <div className="logo-text">
             <h1>MathAI</h1>
+            <span className="logo-tag">PREMIUM</span>
           </div>
         </div>
         
         <div className="header-actions">
+          <button className="history-toggle" onClick={toggleHistory} title="View History">
+            <span className="history-icon">🕒</span>
+            <span className="history-label">History</span>
+            {historyCount > 0 && <span className="history-badge">{historyCount}</span>}
+          </button>
+
+          <div className="v-divider"></div>
+
           <div className="toggle-container">
             <span className={`toggle-label ${!isTest ? 'active' : ''}`}>Prod</span>
             <label className="switch">
@@ -27,7 +36,10 @@ export default function Header({ isTest, setIsTest }) {
             </label>
             <span className={`toggle-label ${isTest ? 'active' : ''}`}>Test</span>
           </div>
-          <span className="model-badge">AI Solver</span>
+          
+          <div className="user-profile">
+            <div className="avatar">A</div>
+          </div>
         </div>
       </div>
     </header>
